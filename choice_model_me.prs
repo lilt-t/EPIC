@@ -1,0 +1,342 @@
+//Basic Choice Rules: Parallel Response Selection Strategy
+//Device file: mhpcolor_device5.2
+//Last Edit: Travis Seymour
+
+
+//Setup Initial Working Memory contents. 
+(Define Initial_memory_contents (Goal do choice_task))
+
+
+//**********************************************************************************************
+(------BLOCK_AND_TRIAL_MANAGEMENT_RULES-----
+If((IGNOREME))Then((Add (NOTHING))))
+//**********************************************************************************************
+
+(TRIAL_start_block
+If
+(
+	(Goal do choice_task)
+	(Not (Step ??? ???))
+	(Not (Tag ??? ???))
+ )
+Then
+(
+	(Add (Step Start Trial))
+))
+
+
+(TRIAL_start_trial
+If
+(
+	(Step Start Trial)
+ )
+Then
+(
+	(Delete (Step Start Trial))
+	(Add (Step Waitfor Visual_Fixation_Onset))
+))
+
+
+//**********************************************************************************************
+(------VISUAL_PERCEPTION_RULES-----
+If((IGNOREME))Then((Add (NOTHING))))
+//**********************************************************************************************
+
+(VISUAL_fixation_onset
+If
+(
+	(Step Waitfor Visual_Fixation_Onset) 
+	(Visual ?a Detection Onset)	//if there is some visual object ?a which has just onset
+	(Motor Ocular Processor Free) //EPIC's ocular processor is not busy
+)
+Then
+(
+	(Send_to_motor Ocular Perform Move ?a) //move eyes to the object ?a
+	(Delete (Step Waitfor Visual_Fixation_Onset)) 
+	(Add (Step Waitfor Visual_Fixation_Verify))
+))
+
+(VISUAL_fixation_verify
+If
+(
+	(Step Waitfor Visual_Fixation_Verify) //check that the detection onset is fixation symbol
+	(Visual ?a Text #) //is there a visual object with text property #?
+)
+Then
+(	
+	(Add (Tag ?a Fixation_Symbol)) //tag the object as the fixation symbol
+	(Delete (Step Waitfor Visual_Fixation_Verify))
+	(Add (Step Waitfor Visual_Stimulus_Onset))
+))
+
+(VISUAL_stimulus_onset
+If
+(
+	(Step Waitfor Visual_Stimulus_Onset) 
+	(Visual ?a Detection Onset) //some object ?a has onset on the screen
+	(Tag ?b Fixation_Symbol) //some object ?b is tagged as the fixation symbol
+	(DIFFERENT ?a ?b) //object ?a and ?b are not the same object
+)
+Then
+(
+	(Delete (Step Waitfor Visual_Stimulus_Onset)) 
+	(Add (Step Waitfor Visual_Stimulus_Verify))
+))
+
+(Visual_stimulus_verify
+If
+( 
+	(Step Waitfor Visual_Stimulus_Verify) //verify new object is stimulus
+	(Visual ?a Color ?c) //some object ?a has a color ?c
+	(Visual ?b Shape Circle) //some object ?b is a circle
+	(EQUAL ?a ?b) //object ?a and ?b are the same object
+)
+Then
+(
+	(Add (Tag ?b Visual_Stimulus)) //colored circle is tagged as the visual stimulus
+	//(Add (Tag ?c Stimulus_Color)) //?c is the color of the stimulus
+	(Add (Step Check Red)) 
+	(Delete (Step Waitfor Visual_Stimulus_Verify))
+))
+
+(Visual_stimulus_red
+If
+(	
+	(Step Check Red)
+	(Visual ??? Color Red)
+)
+Then
+(
+	(Add (Tag Red Stimulus_Color))	
+	(Delete (Step Check Red))
+	(Add (Step Prepare Visual_Response_Index))
+))	
+
+(Visual_stimulus_notred
+If
+(
+	(Step Check Red)
+	(Not(Visual ??? Color Red))
+)
+Then
+(
+	(Delete (Step Check Red))
+	(Add (Step Check GreenorBlue))
+))
+
+(Visual_stimulus_green
+If
+(
+	(Step Check GreenorBlue)
+	(Visual ??? Color Green)
+)
+Then
+(	
+	(Add (Tag Green Stimulus_Color))
+	(Delete (Step Check GreenorBlue))
+	(Add (Step Prepare Visual_Response_Index))
+))
+
+(Visual_stimulus_blue
+If
+(
+	(Step Check GreenorBlue)
+	(Visual ??? Color Blue)
+)
+Then
+(
+	(Add (Tag Blue Stimulus_Color))
+	(Delete (Step Check GreenorBlue))
+	(Add (Step Prepare Visual_Response_Ring))
+))
+
+(Visual_stimulus_greenorblue
+If
+(
+	(Step Check GreenorBlue)
+	(Not (Visual ??? Color Blue))
+	(Not (Visual ??? Color Green))
+)
+Then
+(
+	(Delete (Step Check GreenorBlue))
+	(Add (Step Check Yellow))
+))
+
+(Visual_stimulus_yellow
+If
+(
+	(Step Check Yellow)
+	(Visual ??? Color Yellow)
+)
+Then
+(
+	(Add (Tag Yellow Stimulus_Color))
+	(Delete (Step Check Yellow))
+	(Add (Step Prepare Visual_Response_Ring))
+))
+
+//**********************************************************************************************
+(------RESPONSE_MAPPING_RULES-----
+If((IGNOREME))Then((Add (NOTHING))))
+//**********************************************************************************************
+
+(MANUAL_prepare_visual_response_ring
+If
+(
+	(Step Prepare Visual_Response_Ring)
+	(Tag Blue Stimulus_Color)
+)
+Then
+(
+	(Send_to_motor Manual Prepare Punch O Right Ring)
+	(Delete (Step Prepare Visual_Response_Ring))
+	(Add (Step Check Visual_Response_Ring))
+))
+
+(Manual_check_visual_response_ring
+If
+(
+	(Step Check Visual_Response_Ring)
+	(Motor Manual Preparation Free)
+)
+Then
+(
+	(Add (Step Make Visual_Response))
+	(Add(Tag O Right Ring Correct_Movement))
+	(Delete (Step Check Visual_Response_Ring))
+))
+
+(MANUAL_visual_response_notring
+If
+(
+	(Step Prepare Visual_Response_Ring)
+	(Not(Tag Blue Stimulus_Color))
+)
+Then
+(
+	(Delete (Step Prepare Visual_Response_Ring))
+	(Add (Step Prepare Visual_Response_Little))
+))
+
+(MANUAL_prepare_visual_response_little
+If
+(
+	(Step Prepare Visual_Response_Little)	
+	(Tag Yellow Stimulus_Color)
+)
+Then
+(
+	(Send_to_motor Manual Prepare Punch P Right Little)
+	(Delete (Step Prepare Visual_Response_Little))
+	(Add (Step Check Visual_Response_Little))
+))
+
+(MANUAL_check_visual_response_little
+If
+(
+	(Step Check Visual_Response_Little)
+	(Motor Manual Preparation Free)
+)
+Then
+(
+	(Add (Tag P Right Little Correct_Movement))
+	(Delete (Step Check Visual_Response_Little))
+	(Add (Step Make Visual_Response))
+))
+
+(MANUAL_prepare_visual_response_index
+If
+(
+	(Step Prepare Visual_Response_Index)
+	(Tag Red Stimulus_Color)
+)
+Then
+(
+	(Send_to_motor Manual Prepare Punch U Right Index)
+	(Delete (Step Prepare Visual_Response_Index))
+	(Add (Step Check Visual_Response_Index))
+))
+
+(MANUAL_check_visual_response_index
+If
+(
+	(Step Check Visual_Response_Index)
+	(Motor Manual Preparation Free)
+)
+Then
+(
+	(Add (Tag U Right Index Correct_Movement))
+	(Delete (Step Check Visual_Response_Index))
+	(Add (Step Make Visual_Response))
+))
+
+(MANUAL_prepare_visual_response_notindex
+If
+(
+	(Step Prepare Visual_Response_Index)
+	(Not (Tag Red Stimulus_Color))
+)
+Then
+(
+	(Delete (Step Prepare Visual_Response_Index))
+	(Add (Step Prepare Visual_Response_Middle))
+))
+
+(MANUAL_prepare_visual_response_middle
+If
+(
+	(Step Prepare Visual_Response_Middle)
+	(Tag Green Stimulus_Color)
+)
+Then
+(
+	(Send_to_motor Manual Prepare Punch I Right Middle)
+	(Delete (Step Prepare Visual_Response_Middle))
+	(Add (Step Check Visual_Response_Middle))
+))
+
+(Manual_check_visual_response_middle
+If
+(
+	(Step Check Visual_Response_Middle)
+	(Motor Manual Preparation Free)
+)
+Then
+(
+	(Add (Tag I Right Middle Correct_Movement))
+	(Delete (Step Check Visual_Response_Middle))
+	(Add (Step Make Visual_Response))
+))
+
+(MANUAL_make_visual_response
+If
+(
+	(Step Make Visual_Response)  
+	(Tag ?a ?b ?c Correct_Movement) //?a= letter ?b which hand ?c which finger
+	(Motor Manual Preparation Free)
+)
+Then
+(
+	(Send_to_motor Manual Perform Punch ?a ?b ?c) //manual processors punch the movement specified by ?a ?b ?c
+	(Delete (Tag ?a ?b ?c Correct_Movement))
+	(Delete (Step Make Visual_Response))
+	(Add (Step Cleanup Trial))
+))
+
+//**********************************************************************************************
+(------CLEANUP_RULES-----
+If((IGNOREME))Then((Add (NOTHING))))
+//**********************************************************************************************
+
+(TRIAL_cleanup_trial
+If 
+(
+	(Step Cleanup Trial)
+	(Tag ?x ?y)
+)
+Then 
+(
+	(Delete (Tag ?x ?y))
+	(Delete (Step Cleanup Trial))
+))
